@@ -87,6 +87,58 @@ def thermal_simulation(parameter_values=None):
     )
     return sim
 
+def Age_SEI_simulation(parameter_values=None):
+    """
+    Create a PyBaMM simulation set up for integration with liionpack
+
+    Args:
+        parameter_values (pybamm.ParameterValues):
+            The default is None.
+
+    Returns:
+        sim (pybamm.Simulation):
+            A simulation that can be solved individually or passed into the
+            liionpack solve method
+
+    """
+    # Create the pybamm model
+    model = pybamm.lithium_ion.SPMe(
+        options={
+            "SEI": "reaction limited"
+        }
+    )
+
+    # Add events to the model
+    model = lp.add_events_to_model(model)
+
+    # Set up parameter values
+    if parameter_values is None:
+        parameter_values = pybamm.ParameterValues("Chen2020")
+
+    # Change the heat transfer coefficient to be an input controlled by the
+    # external circuit
+    parameter_values.update(
+        {
+            "Total heat transfer coefficient [W.m-2.K-1]": "[input]",
+        },
+    )
+
+    parameter_values.update(
+        {
+            "SEI kinetic rate constant [m.s-1]": 1e-10,
+        },
+    )
+
+
+    # Set up solver and simulation
+    solver = pybamm.CasadiSolver(mode="safe")
+    sim = pybamm.Simulation(
+        model=model,
+        parameter_values=parameter_values,
+        solver=solver,
+    )
+    return sim
+
 
 def thermal_external(parameter_values=None):
     """
